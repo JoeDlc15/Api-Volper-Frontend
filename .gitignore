@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.eslintcache
+.env
+.env.local
+.DS_Store
+Thumbs.db
+logs/
+*.log
