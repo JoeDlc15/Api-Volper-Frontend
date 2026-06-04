@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { Toaster } from 'react-hot-toast';
 import { generarCotizacionPDF } from '../utils/pdfGenerator';
+import ManualQuotationModal from '../components/ManualQuotationModal';
 
 export default function Cotizaciones() {
+  const { confirm, ConfirmModal } = useConfirmDialog();
   const [cotizaciones, setCotizaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,19 +14,29 @@ export default function Cotizaciones() {
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('cotizacionesItemsPerPage');
+    return saved ? Number(saved) : 10;
+  });
 
   // Detalle
   const [selectedCotizacion, setSelectedCotizacion] = useState(null);
 
   // Modal y Notificaciones
   const [showNewCotizacionModal, setShowNewCotizacionModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [importNumber, setImportNumber] = useState('');
   const [isImporting, setIsImporting] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteNumber, setDeleteNumber] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Traslado Masivo
+  const [showMassiveTransferModal, setShowMassiveTransferModal] = useState(false);
+  const [transferTargetWarehouse, setTransferTargetWarehouse] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [warehouses, setWarehouses] = useState([]);
 
   const [pdfPreview, setPdfPreview] = useState(null);
 
@@ -36,7 +49,45 @@ export default function Cotizaciones() {
 
   useEffect(() => {
     fetchCotizaciones();
+    fetchWarehouses();
   }, []);
+
+  const fetchWarehouses = async () => {
+    try {
+      const res = await axios.get('http://localhost:3000/api/warehouses');
+      setWarehouses(res.data);
+    } catch (error) {
+      console.error("Error cargando almacenes:", error);
+    }
+  };
+
+  const handleMassiveTransfer = async () => {
+    if (!selectedCotizacion) return;
+
+    // Verificar si hay stock negativo
+    const hasNegativeStock = selectedCotizacion.items.some(item => parseFloat(item.quantity) > parseFloat(item.stockTotal || 0));
+    if (hasNegativeStock) {
+        const isConfirmed = await confirm("Estás a punto de realizar un traslado sin tener el stock completo (algunos productos quedarán en negativo). ¿Deseas continuar?");
+        if (!isConfirmed) return;
+    }
+
+    setIsTransferring(true);
+    try {
+      const res = await axios.post(`http://localhost:3000/api/quotations/${selectedCotizacion.id}/transfer-all`, {
+        target_warehouse_id: transferTargetWarehouse
+      });
+      if (res.data.success) {
+        showNotification(res.data.message, 'success');
+        setShowMassiveTransferModal(false);
+        fetchCotizaciones();
+        setSelectedCotizacion(null);
+      }
+    } catch (error) {
+      showNotification(error.response?.data?.error || "Error al trasladar cotización", 'error');
+    } finally {
+      setIsTransferring(false);
+    }
+  };
 
   const fetchCotizaciones = async () => {
     try {
@@ -120,7 +171,8 @@ export default function Cotizaciones() {
       return;
     }
 
-    if (!window.confirm(`¿Estás completamente seguro de eliminar la cotización COT-${numberOnly}? Esta acción no se puede deshacer.`)) {
+    const isConfirmed = await confirm(`¿Estás completamente seguro de eliminar la cotización COT-${numberOnly}? Esta acción no se puede deshacer.`);
+    if (!isConfirmed) {
       return;
     }
 
@@ -179,7 +231,8 @@ export default function Cotizaciones() {
     const statusOrder = {
       'PENDIENTE': 1,
       'RESERVADO': 2,
-      'FACTURADO': 3
+      'TRASLADADO': 3,
+      'FACTURADO': 4
     };
     
     const orderA = statusOrder[a.status] || 99;
@@ -200,6 +253,7 @@ export default function Cotizaciones() {
 
   const getStatusBadge = (status) => {
     if (status === 'FACTURADO') return <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>FACTURADO</span>;
+    if (status === 'TRASLADADO') return <span style={{ background: '#f3e8ff', color: '#7e22ce', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>TRASLADADO</span>;
     if (status === 'PENDIENTE') return <span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>PENDIENTE</span>;
     if (status === 'RESERVADO') return <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>RESERVADO</span>;
     return <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>{status}</span>;
@@ -219,7 +273,13 @@ export default function Cotizaciones() {
               onClick={() => setShowNewCotizacionModal(true)}
               style={{ padding: '8px 16px', backgroundColor: '#6366f1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
             >
-              ➕ Nueva Cotización
+              📥 Importar de Volper
+            </button>
+            <button 
+              onClick={() => setShowManualModal(true)}
+              style={{ padding: '8px 16px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+            >
+              📝 Cotización Manual (Extranjero)
             </button>
             <button 
               onClick={handleSyncInvoices}
@@ -258,6 +318,7 @@ export default function Cotizaciones() {
                 <option value="Todos los estados">Todos los estados</option>
                 <option value="PENDIENTE">PENDIENTE</option>
                 <option value="RESERVADO">RESERVADO</option>
+                <option value="TRASLADADO">TRASLADADO</option>
                 <option value="FACTURADO">FACTURADO</option>
               </select>
             </div>
@@ -350,6 +411,22 @@ export default function Cotizaciones() {
                                         ✅ Facturado
                                       </button>
                                     )}
+                                    {selectedCotizacion.status === 'TRASLADADO' && (
+                                      <button 
+                                        disabled
+                                        style={{ padding: '6px 12px', backgroundColor: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'not-allowed', fontWeight: '500', fontSize: '0.8rem' }}
+                                      >
+                                        📦 Trasladado
+                                      </button>
+                                    )}
+                                    {(selectedCotizacion.status === 'PENDIENTE' || selectedCotizacion.status === 'RESERVADO') && (
+                                      <button 
+                                        onClick={() => setShowMassiveTransferModal(true)}
+                                        style={{ padding: '6px 12px', backgroundColor: '#f3e8ff', color: '#7e22ce', border: '1px solid #d8b4fe', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '0.8rem' }}
+                                      >
+                                        🚚 Traslado Masivo
+                                      </button>
+                                    )}
                                     <button 
                                       onClick={() => {
                                         const result = generarCotizacionPDF(selectedCotizacion);
@@ -424,7 +501,12 @@ export default function Cotizaciones() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <select 
                 value={itemsPerPage} 
-                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                onChange={(e) => { 
+                  const val = Number(e.target.value);
+                  setItemsPerPage(val); 
+                  localStorage.setItem('cotizacionesItemsPerPage', val);
+                  setCurrentPage(1); 
+                }}
                 style={{ padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none', color: '#475569' }}
               >
                 <option value={10}>10 por página</option>
@@ -485,6 +567,48 @@ export default function Cotizaciones() {
                 style={{ padding: '8px 16px', backgroundColor: isImporting ? '#93c5fd' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: isImporting ? 'not-allowed' : 'pointer', fontWeight: '500' }}
               >
                 {isImporting ? 'Importando...' : 'Importar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Modal Traslado Masivo */}
+      {showMassiveTransferModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', width: '500px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: '#1e293b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚚 Traslado Masivo a Ventas</h3>
+            <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '20px' }}>
+              Se trasladarán todos los productos de la cotización <strong>{selectedCotizacion?.number}</strong> desde sus almacenes de origen hacia el almacén seleccionado. Esta acción <strong>no se puede revertir</strong> y la reserva será eliminada (Estado: TRASLADADO).
+            </p>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>Almacén Destino (Ventas):</label>
+              <select
+                value={transferTargetWarehouse}
+                onChange={(e) => setTransferTargetWarehouse(e.target.value)}
+                style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none', fontSize: '0.95rem' }} 
+              >
+                <option value="">Seleccione el almacén de ventas...</option>
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                onClick={() => setShowMassiveTransferModal(false)}
+                style={{ padding: '8px 16px', backgroundColor: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                disabled={isTransferring}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleMassiveTransfer}
+                disabled={isTransferring || !transferTargetWarehouse}
+                style={{ padding: '8px 16px', backgroundColor: isTransferring || !transferTargetWarehouse ? '#d8b4fe' : '#9333ea', color: 'white', border: 'none', borderRadius: '4px', cursor: isTransferring || !transferTargetWarehouse ? 'not-allowed' : 'pointer', fontWeight: '500' }}
+              >
+                {isTransferring ? 'Trasladando...' : 'Confirmar Traslado Masivo'}
               </button>
             </div>
           </div>
@@ -582,6 +706,12 @@ export default function Cotizaciones() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+      <ConfirmModal />
+      <ManualQuotationModal 
+        isOpen={showManualModal} 
+        onClose={() => setShowManualModal(false)} 
+        onQuotationCreated={fetchCotizaciones} 
+      />
     </div>
   );
 }

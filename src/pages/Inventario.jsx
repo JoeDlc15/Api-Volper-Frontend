@@ -5,6 +5,7 @@ export default function Inventario() {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [lastUpdate, setLastUpdate] = useState(null);
   
   // Nuevos estados para filtros
   const [almacenFilter, setAlmacenFilter] = useState('Todos');
@@ -27,6 +28,11 @@ export default function Inventario() {
       setLoading(true);
       const res = await axios.get('http://localhost:3000/api/products');
       setProductos(res.data);
+      
+      const updatesRes = await axios.get('http://localhost:3000/api/last-updates');
+      if (updatesRes.data && updatesRes.data.catalog) {
+        setLastUpdate(new Date(updatesRes.data.catalog).toLocaleString());
+      }
     } catch (error) {
       console.error("Error cargando productos:", error);
     } finally {
@@ -89,16 +95,19 @@ export default function Inventario() {
     <div className="premium-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ color: '#1e293b' }}>📦 Inventario de Productos</h2>
-        <button 
-          onClick={handleUpdateCatalog}
-          disabled={loading}
-          style={{
-            padding: '8px 16px', backgroundColor: 'var(--primary-color)', 
-            color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
-          }}
-        >
-          {loading ? 'Actualizando...' : '🔄 Actualizar Catálogo'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {lastUpdate && <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Última actualización: <strong>{lastUpdate}</strong></span>}
+          <button 
+            onClick={handleUpdateCatalog}
+            disabled={loading}
+            style={{
+              padding: '8px 16px', backgroundColor: 'var(--primary-color)', 
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
+            }}
+          >
+            {loading ? 'Actualizando...' : '🔄 Actualizar Catálogo'}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function RevisarCotizacion() {
+  const { confirm, ConfirmModal } = useConfirmDialog();
   const [searchNumber, setSearchNumber] = useState(() => sessionStorage.getItem('revisar_searchNumber') || '');
   const [currentQuote, setCurrentQuote] = useState(() => {
     const saved = sessionStorage.getItem('revisar_currentQuote');
@@ -69,7 +71,8 @@ export default function RevisarCotizacion() {
     } catch (error) {
       if (error.response?.status === 404) {
         // La cotización no existe en la BD local. Preguntar si desea descargarla.
-        if (window.confirm(`La cotización ${dbNumber} no existe en tu base de datos local.\n\n¿Deseas descargarla e importarla automáticamente desde Volper?`)) {
+        const isConfirmed = await confirm(`La cotización ${dbNumber} no existe en tu base de datos local.\n\n¿Deseas descargarla e importarla automáticamente desde Volper?`);
+        if (isConfirmed) {
           await importMissingQuote(dbNumber);
         }
       } else {
@@ -223,7 +226,7 @@ export default function RevisarCotizacion() {
                 <div><strong>Fecha:</strong> {currentQuote.date}</div>
                 <div><strong>Vendedor:</strong> {currentQuote.sellerName || '-'}</div>
                 <div><strong>Estado Actual:</strong> 
-                  <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', background: currentQuote.status === 'FACTURADO' ? '#dcfce7' : currentQuote.status === 'RESERVADO' ? '#dbeafe' : '#fef3c7', color: currentQuote.status === 'FACTURADO' ? '#166534' : currentQuote.status === 'RESERVADO' ? '#1e40af' : '#92400e' }}>
+                  <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', background: currentQuote.status === 'FACTURADO' ? '#dcfce7' : currentQuote.status === 'TRASLADADO' ? '#f3e8ff' : currentQuote.status === 'RESERVADO' ? '#dbeafe' : '#fef3c7', color: currentQuote.status === 'FACTURADO' ? '#166534' : currentQuote.status === 'TRASLADADO' ? '#7e22ce' : currentQuote.status === 'RESERVADO' ? '#1e40af' : '#92400e' }}>
                     {currentQuote.status}
                   </span>
                 </div>
@@ -364,6 +367,7 @@ export default function RevisarCotizacion() {
           </div>
         </div>
       )}
+      <ConfirmModal />
     </div>
   );
 }

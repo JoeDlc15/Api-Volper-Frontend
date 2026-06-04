@@ -5,6 +5,7 @@ export default function Movimientos() {
   const [movimientos, setMovimientos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [lastUpdate, setLastUpdate] = useState(null);
   
   // Filtros avanzados
   const [almacenFilter, setAlmacenFilter] = useState('Todos');
@@ -40,6 +41,11 @@ export default function Movimientos() {
       setLoading(true);
       const res = await axios.get('http://localhost:3000/api/movimientos');
       setMovimientos(res.data);
+      
+      const updatesRes = await axios.get('http://localhost:3000/api/last-updates');
+      if (updatesRes.data && updatesRes.data.movimientos) {
+        setLastUpdate(new Date(updatesRes.data.movimientos).toLocaleString());
+      }
     } catch (error) {
       console.error("Error cargando movimientos:", error);
     } finally {
@@ -172,16 +178,19 @@ export default function Movimientos() {
       <div className="premium-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ color: '#1e293b' }}>🔄 Movimientos e Ingresos</h2>
-        <button 
-          onClick={handleUpdate}
-          disabled={loading}
-          style={{
-            padding: '8px 16px', backgroundColor: '#3b82f6', 
-            color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
-          }}
-        >
-          {loading ? 'Extrayendo...' : '📥 Extraer Movimientos'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {lastUpdate && <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Última extracción: <strong>{lastUpdate}</strong></span>}
+          <button 
+            onClick={handleUpdate}
+            disabled={loading}
+            style={{
+              padding: '8px 16px', backgroundColor: '#3b82f6', 
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
+            }}
+          >
+            {loading ? 'Extrayendo...' : '📥 Extraer Movimientos'}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>

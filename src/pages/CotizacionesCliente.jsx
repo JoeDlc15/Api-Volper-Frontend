@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function CotizacionesCliente() {
+  const { confirm, ConfirmModal } = useConfirmDialog();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [importQuery, setImportQuery] = useState('');
@@ -84,7 +86,8 @@ export default function CotizacionesCliente() {
       return;
     }
 
-    if (!window.confirm(`¿Estás seguro que deseas eliminar el historial descargado de ${selectedClient}?`)) return;
+    const isConfirmed = await confirm(`¿Estás seguro que deseas eliminar el historial descargado de ${selectedClient}?`);
+    if (!isConfirmed) return;
 
     try {
       setLoading(true);
@@ -98,7 +101,8 @@ export default function CotizacionesCliente() {
   };
 
   const handleLimpiarTodo = async () => {
-    if (!window.confirm("¿Estás seguro que deseas limpiar TODO el historial de clientes importados?")) return;
+    const isConfirmed = await confirm("¿Estás seguro que deseas limpiar TODO el historial de clientes importados?");
+    if (!isConfirmed) return;
 
     try {
       setLoading(true);
@@ -313,6 +317,7 @@ export default function CotizacionesCliente() {
           </div>
         )}
       </div>
+      <ConfirmModal />
     </div>
   );
 }
