@@ -56,9 +56,27 @@ export default function Inventario() {
 
   const filteredProductos = productos.filter(p => {
     // Filtro de Búsqueda de texto (Multi-palabra o letras sueltas)
-    const searchTerms = search.toLowerCase().trim().split(/\s+/);
+    const searchTerms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
     const textToSearch = `${p.internal_id || ''} ${p.name || ''}`.toLowerCase();
-    const matchSearch = searchTerms.every(term => textToSearch.includes(term));
+    
+    let matchSearch = true;
+    if (searchTerms.length > 0) {
+      matchSearch = searchTerms.every(term => textToSearch.includes(term));
+      if (matchSearch) {
+        const numberTerms = searchTerms.filter(term => /\d/.test(term));
+        if (numberTerms.length > 1) {
+          let lastIndex = -1;
+          for (const numTerm of numberTerms) {
+            const idx = textToSearch.indexOf(numTerm, lastIndex === -1 ? 0 : lastIndex);
+            if (idx === -1) {
+              matchSearch = false;
+              break;
+            }
+            lastIndex = idx + numTerm.length;
+          }
+        }
+      }
+    }
     
     // Filtro de Almacén
     const matchAlmacen = almacenFilter === 'Todos' || p.warehouse_name === almacenFilter;

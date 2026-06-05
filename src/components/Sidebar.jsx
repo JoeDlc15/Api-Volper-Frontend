@@ -36,6 +36,7 @@ function Sidebar() {
       icon: '🛒',
       items: [
         { path: '/cotizaciones', label: 'Cotizaciones' },
+        { path: '/cotizaciones-internacionales', label: 'Cotizaciones Internacionales' },
         { path: '/cotizaciones-cliente', label: 'Cotizaciones x Cliente' },
         { path: '/revisar-cotizacion', label: 'Revisar Cotización' },
       ]

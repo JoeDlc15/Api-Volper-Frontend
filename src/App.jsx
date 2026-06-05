@@ -21,7 +21,8 @@ function App() {
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/movimientos" element={<Movimientos />} />
           <Route path="/kardex" element={<Kardex />} />
-          <Route path="/cotizaciones" element={<Cotizaciones />} />
+          <Route path="/cotizaciones" element={<Cotizaciones filterMode="nacional" />} />
+          <Route path="/cotizaciones-internacionales" element={<Cotizaciones filterMode="internacional" />} />
           <Route path="/cotizaciones-cliente" element={<CotizacionesCliente />} />
           <Route path="/revisar-cotizacion" element={<RevisarCotizacion />} />
           <Route path="/almacenes" element={<Almacenes />} />

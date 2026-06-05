@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { generarCotizacionPDF } from '../utils/pdfGenerator';
 import ManualQuotationModal from '../components/ManualQuotationModal';
 
-export default function Cotizaciones() {
+export default function Cotizaciones({ filterMode = 'nacional' }) {
   const { confirm, ConfirmModal } = useConfirmDialog();
   const [cotizaciones, setCotizaciones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export default function Cotizaciones() {
   useEffect(() => {
     fetchCotizaciones();
     fetchWarehouses();
-  }, []);
+  }, [filterMode]);
 
   const fetchWarehouses = async () => {
     try {
@@ -93,7 +93,13 @@ export default function Cotizaciones() {
     try {
       setLoading(true);
       const res = await axios.get('http://localhost:3000/api/quotations');
-      setCotizaciones(res.data.value || res.data || []);
+      let data = res.data.value || res.data || [];
+      if (filterMode === 'internacional') {
+        data = data.filter(q => q.number && q.number.startsWith('EXT-'));
+      } else {
+        data = data.filter(q => !q.number || !q.number.startsWith('EXT-'));
+      }
+      setCotizaciones(data);
     } catch (error) {
       console.error("Error cargando cotizaciones:", error);
     } finally {
@@ -165,28 +171,32 @@ export default function Cotizaciones() {
       return;
     }
     
-    const numberOnly = deleteNumber.replace(/\D/g, '');
-    if (!numberOnly) {
+    let finalNumber = deleteNumber.trim().toUpperCase();
+    if (!finalNumber.startsWith('EXT-') && !finalNumber.startsWith('COT-')) {
+      finalNumber = `COT-${finalNumber.replace(/\D/g, '')}`;
+    }
+    
+    if (!finalNumber || finalNumber === 'COT-') {
       showNotification("Número inválido.", "error");
       return;
     }
 
-    const isConfirmed = await confirm(`¿Estás completamente seguro de eliminar la cotización COT-${numberOnly}? Esta acción no se puede deshacer.`);
+    const isConfirmed = await confirm(`¿Estás completamente seguro de eliminar la cotización ${finalNumber}? Esta acción no se puede deshacer.`);
     if (!isConfirmed) {
       return;
     }
 
     try {
       setIsDeleting(true);
-      showNotification(`Eliminando COT-${numberOnly}...`, "info");
+      showNotification(`Eliminando ${finalNumber}...`, "info");
       
-      const res = await axios.delete(`http://localhost:3000/api/quotations/${numberOnly}`);
+      const res = await axios.delete(`http://localhost:3000/api/quotations/${finalNumber}`);
       
       showNotification(res.data.message || `Cotización eliminada exitosamente.`, "success");
       setShowDeleteModal(false);
       setDeleteNumber('');
       fetchCotizaciones(); // Recargar la lista
-      if (selectedCotizacion?.number === `COT-${numberOnly}` || selectedCotizacion?.number === numberOnly) {
+      if (selectedCotizacion?.number === finalNumber) {
         setSelectedCotizacion(null);
       }
     } catch (error) {
@@ -266,27 +276,33 @@ export default function Cotizaciones() {
       <div className="premium-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <h2 style={{ color: '#1e293b', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            📄 Gestión de Cotizaciones
+            {filterMode === 'internacional' ? '🌍 Cotizaciones Internacionales' : '📄 Gestión de Cotizaciones'}
           </h2>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button 
-              onClick={() => setShowNewCotizacionModal(true)}
-              style={{ padding: '8px 16px', backgroundColor: '#6366f1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-            >
-              📥 Importar de Volper
-            </button>
-            <button 
-              onClick={() => setShowManualModal(true)}
-              style={{ padding: '8px 16px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-            >
-              📝 Cotización Manual (Extranjero)
-            </button>
-            <button 
-              onClick={handleSyncInvoices}
-              style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-            >
-              ✅ Sincronizar Facturas (Masivo)
-            </button>
+            {filterMode === 'nacional' && (
+              <>
+                <button 
+                  onClick={() => setShowNewCotizacionModal(true)}
+                  style={{ padding: '8px 16px', backgroundColor: '#6366f1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+                >
+                  📥 Importar de Volper
+                </button>
+                <button 
+                  onClick={handleSyncInvoices}
+                  style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+                >
+                  ✅ Sincronizar Facturas (Masivo)
+                </button>
+              </>
+            )}
+            {filterMode === 'internacional' && (
+              <button 
+                onClick={() => setShowManualModal(true)}
+                style={{ padding: '8px 16px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+              >
+                📝 Nueva Cotización Internacional
+              </button>
+            )}
             <button 
               onClick={() => setShowDeleteModal(true)}
               style={{ padding: '8px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
@@ -319,7 +335,7 @@ export default function Cotizaciones() {
                 <option value="PENDIENTE">PENDIENTE</option>
                 <option value="RESERVADO">RESERVADO</option>
                 <option value="TRASLADADO">TRASLADADO</option>
-                <option value="FACTURADO">FACTURADO</option>
+                {filterMode === 'nacional' && <option value="FACTURADO">FACTURADO</option>}
               </select>
             </div>
           </div>
@@ -624,7 +640,7 @@ export default function Cotizaciones() {
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>Número de Cotización a eliminar:</label>
               <input 
                 type="text" 
-                placeholder="Ej: 1532 o COT-1532" 
+                placeholder="Ej: 1532, COT-1532 o EXT-0001" 
                 value={deleteNumber}
                 onChange={(e) => setDeleteNumber(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleDeleteCotizacion(); }}

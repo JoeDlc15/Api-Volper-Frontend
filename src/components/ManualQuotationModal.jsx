@@ -18,7 +18,7 @@ export default function ManualQuotationModal({ isOpen, onClose, onQuotationCreat
     const fetchProducts = async () => {
         try {
             const res = await axios.get('http://localhost:3000/api/products');
-            setAvailableProducts(res.data.products || []);
+            setAvailableProducts(Array.isArray(res.data) ? res.data : (res.data.products || []));
         } catch (error) {
             console.error("Error cargando productos:", error);
         }
@@ -85,10 +85,29 @@ export default function ManualQuotationModal({ isOpen, onClose, onQuotationCreat
     if (!isOpen) return null;
 
     // Filter products for the datalist / select
-    const filteredProducts = availableProducts.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        p.internal_id.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 100); // Limit to 100 for performance
+    const filteredProducts = availableProducts.filter(p => {
+        const searchTerms = searchTerm.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        if (searchTerms.length === 0) return true;
+        
+        const textToSearch = `${p.internal_id || ''} ${p.name || ''}`.toLowerCase();
+        let matchSearch = searchTerms.every(term => textToSearch.includes(term));
+        
+        if (matchSearch) {
+            const numberTerms = searchTerms.filter(term => /\d/.test(term));
+            if (numberTerms.length > 1) {
+                let lastIndex = -1;
+                for (const numTerm of numberTerms) {
+                    const idx = textToSearch.indexOf(numTerm, lastIndex === -1 ? 0 : lastIndex);
+                    if (idx === -1) {
+                        matchSearch = false;
+                        break;
+                    }
+                    lastIndex = idx + numTerm.length;
+                }
+            }
+        }
+        return matchSearch;
+    }).slice(0, 100); // Limit to 100 for performance
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
