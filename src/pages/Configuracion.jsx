@@ -18,7 +18,7 @@ export default function Configuracion() {
   const fetchCredentials = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/config/credentials');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/config/credentials');
       if (res.data.success) {
         setCreds({
           ventasEmail: res.data.ventasEmail || '',
@@ -41,7 +41,7 @@ export default function Configuracion() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await axios.post('http://localhost:3000/api/config/credentials', creds);
+      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/config/credentials', creds);
       alert('✅ Configuración guardada correctamente');
       fetchCredentials(); // Recargar
     } catch (error) {

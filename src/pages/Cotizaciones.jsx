@@ -54,7 +54,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/warehouses');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/warehouses');
       setWarehouses(res.data);
     } catch (error) {
       console.error("Error cargando almacenes:", error);
@@ -73,7 +73,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
 
     setIsTransferring(true);
     try {
-      const res = await axios.post(`http://localhost:3000/api/quotations/${selectedCotizacion.id}/transfer-all`, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${selectedCotizacion.id}/transfer-all`, {
         target_warehouse_id: transferTargetWarehouse
       });
       if (res.data.success) {
@@ -92,7 +92,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
   const fetchCotizaciones = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/quotations');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/quotations');
       let data = res.data.value || res.data || [];
       if (filterMode === 'internacional') {
         data = data.filter(q => q.number && q.number.startsWith('EXT-'));
@@ -110,7 +110,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
   const handleSyncInvoices = async () => {
     try {
       showNotification("Iniciando sincronización masiva. Esto puede tardar unos minutos...", "info");
-      const res = await axios.post('http://localhost:3000/api/sync-invoices');
+      const res = await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/sync-invoices');
       fetchCotizaciones();
       const count = res.data.updatedCount || 0;
       showNotification(`Sincronización completada. ${count} fueron actualizados.`, "success");
@@ -123,7 +123,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     try {
       setSelectedCotizacion({ number, loading: true }); 
       
-      const res = await axios.get(`http://localhost:3000/api/quotations/${number}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${number}`);
       setSelectedCotizacion({ ...res.data, loading: false });
       
       // Auto-scroll
@@ -152,7 +152,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
       setIsImporting(true);
       showNotification(`Importando cotización ${importNumber}...`, "info");
       
-      const res = await axios.post(`http://localhost:3000/api/add-quotation`, { quotationNumber: numberOnly });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/add-quotation`, { quotationNumber: numberOnly });
       
       showNotification(res.data.message || `Cotización ${importNumber} importada exitosamente.`, "success");
       setShowNewCotizacionModal(false);
@@ -190,7 +190,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
       setIsDeleting(true);
       showNotification(`Eliminando ${finalNumber}...`, "info");
       
-      const res = await axios.delete(`http://localhost:3000/api/quotations/${finalNumber}`);
+      const res = await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${finalNumber}`);
       
       showNotification(res.data.message || `Cotización eliminada exitosamente.`, "success");
       setShowDeleteModal(false);
@@ -213,7 +213,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
         return;
       }
       showNotification(`Cambiando estado a ${newStatus}...`, "info");
-      await axios.put(`http://localhost:3000/api/quotations/${selectedCotizacion.id}/status`, { status: newStatus });
+      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${selectedCotizacion.id}/status`, { status: newStatus });
       showNotification(`Cotización actualizada a ${newStatus}.`, "success");
       
       // Recargar completamente el detalle para que el backend recalcule las reservas y stock de los items

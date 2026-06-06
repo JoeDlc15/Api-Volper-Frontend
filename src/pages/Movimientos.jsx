@@ -39,10 +39,10 @@ export default function Movimientos() {
   const fetchMovimientos = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/movimientos');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/movimientos');
       setMovimientos(res.data);
       
-      const updatesRes = await axios.get('http://localhost:3000/api/last-updates');
+      const updatesRes = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/last-updates');
       if (updatesRes.data && updatesRes.data.movimientos) {
         setLastUpdate(new Date(updatesRes.data.movimientos).toLocaleString());
       }
@@ -56,7 +56,7 @@ export default function Movimientos() {
   const handleUpdate = async () => {
     try {
       setLoading(true);
-      await axios.get('http://localhost:3000/api/update-movimientos');
+      await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/update-movimientos');
       fetchMovimientos();
     } catch (error) {
       alert("Error actualizando movimientos.");
@@ -94,7 +94,7 @@ export default function Movimientos() {
     if (!ingresoQty || ingresoQty <= 0) return alert('Ingrese una cantidad válida mayor a cero.');
     try {
       setActionLoading(true);
-      await axios.post('http://localhost:3000/api/add-transaction', {
+      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/add-transaction', {
         item_id: selectedItem.item_id,
         item_code: selectedItem.item_internal_id,
         item_description: selectedItem.item_description,
@@ -122,7 +122,7 @@ export default function Movimientos() {
     
     try {
       setActionLoading(true);
-      await axios.post('http://localhost:3000/api/move-transaction', {
+      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/move-transaction', {
         id: selectedItem.id,
         item_id: selectedItem.item_id,
         item_code: selectedItem.item_internal_id,

@@ -21,7 +21,7 @@ export default function Kardex() {
   const fetchKardex = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/kardex');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/kardex');
       // Asegurar que si el backend manda un objeto con {data: ...} o solo el array lo manejemos bien
       const dataArray = Array.isArray(res.data) ? res.data : (res.data.data || []);
       // Ordenar más recientes primero

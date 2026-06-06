@@ -17,7 +17,7 @@ export default function ManualQuotationModal({ isOpen, onClose, onQuotationCreat
 
     const fetchProducts = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/api/products');
+            const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/products');
             setAvailableProducts(Array.isArray(res.data) ? res.data : (res.data.products || []));
         } catch (error) {
             console.error("Error cargando productos:", error);
@@ -65,7 +65,7 @@ export default function ManualQuotationModal({ isOpen, onClose, onQuotationCreat
 
         try {
             setIsSaving(true);
-            const res = await axios.post('http://localhost:3000/api/quotations/manual', {
+            const res = await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/quotations/manual', {
                 customerName: customerName.trim(),
                 items: validItems
             });

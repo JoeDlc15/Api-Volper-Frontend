@@ -27,7 +27,7 @@ export default function CotizacionesCliente() {
     if (isImporting) {
       interval = setInterval(async () => {
         try {
-          const res = await axios.get('http://localhost:3000/api/import-customer-progress');
+          const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/import-customer-progress');
           const prog = res.data;
           setImportProgress(prog);
 
@@ -53,7 +53,7 @@ export default function CotizacionesCliente() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/customer-quotations');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/customer-quotations');
       setData(res.data || []);
     } catch (error) {
       console.error("Error cargando el historial de clientes:", error);
@@ -71,7 +71,7 @@ export default function CotizacionesCliente() {
     try {
       setIsImporting(true);
       setImportProgress({ message: "Iniciando proceso..." });
-      await axios.post('http://localhost:3000/api/import-customer-quotations', { query: importQuery.trim() });
+      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/import-customer-quotations', { query: importQuery.trim() });
       // El backend responde inmediatamente porque corre en segundo plano.
       // El useEffect de isImporting se encargará de hacer polling.
     } catch (error) {
@@ -91,7 +91,7 @@ export default function CotizacionesCliente() {
 
     try {
       setLoading(true);
-      await axios.delete('http://localhost:3000/api/customer-quotations', { data: { customer_name: selectedClient } });
+      await axios.delete((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/customer-quotations', { data: { customer_name: selectedClient } });
       setSelectedClient('Todos los clientes importados');
       fetchData();
     } catch (error) {
@@ -106,7 +106,7 @@ export default function CotizacionesCliente() {
 
     try {
       setLoading(true);
-      await axios.delete('http://localhost:3000/api/customer-quotations', { data: {} });
+      await axios.delete((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/customer-quotations', { data: {} });
       setSelectedClient('Todos los clientes importados');
       fetchData();
     } catch (error) {

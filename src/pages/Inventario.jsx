@@ -26,10 +26,10 @@ export default function Inventario() {
   const fetchProductos = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/products');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/products');
       setProductos(res.data);
       
-      const updatesRes = await axios.get('http://localhost:3000/api/last-updates');
+      const updatesRes = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/last-updates');
       if (updatesRes.data && updatesRes.data.catalog) {
         setLastUpdate(new Date(updatesRes.data.catalog).toLocaleString());
       }
@@ -43,7 +43,7 @@ export default function Inventario() {
   const handleUpdateCatalog = async () => {
     try {
       setLoading(true);
-      await axios.get('http://localhost:3000/api/update-catalog');
+      await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/update-catalog');
       fetchProductos();
     } catch (error) {
       alert("Error actualizando catálogo.");

@@ -60,7 +60,7 @@ export default function RevisarCotizacion() {
       setCurrentQuote(null);
       setCustomerHistory([]); // Reset history when new quote loads
       
-      const res = await axios.get(`http://localhost:3000/api/quotations/${dbNumber}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${dbNumber}`);
       const quoteData = res.data;
       setCurrentQuote(quoteData);
 
@@ -89,7 +89,7 @@ export default function RevisarCotizacion() {
       const rawNumber = number.replace(/\D/g, '');
 
       setLoadingQuote(true);
-      await axios.post('http://localhost:3000/api/add-quotation', { quotationNumber: rawNumber });
+      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/add-quotation', { quotationNumber: rawNumber });
       
       // Una vez importada correctamente, la volvemos a buscar en formato BD
       await handleSearchQuote(`COT-${rawNumber}`);
@@ -102,7 +102,7 @@ export default function RevisarCotizacion() {
   const fetchCustomerHistory = async (name, ruc) => {
     try {
       setLoadingHistory(true);
-      const res = await axios.get('http://localhost:3000/api/customer-quotations');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/customer-quotations');
       const allHistory = res.data;
 
       // Filtrar historial exacto por este cliente (usando RUC o nombre)
@@ -124,7 +124,7 @@ export default function RevisarCotizacion() {
     if (importingHistory) {
       interval = setInterval(async () => {
         try {
-          const res = await axios.get('http://localhost:3000/api/import-customer-progress');
+          const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/import-customer-progress');
           const prog = res.data;
           setImportProgress(prog);
 
@@ -160,7 +160,7 @@ export default function RevisarCotizacion() {
     try {
       setImportingHistory(true);
       setImportProgress({ message: "Iniciando sincronización..." });
-      await axios.post('http://localhost:3000/api/import-customer-quotations', { query });
+      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/import-customer-quotations', { query });
     } catch (error) {
       alert("Error importando historial: " + (error.response?.data?.error || error.message));
       setImportingHistory(false);

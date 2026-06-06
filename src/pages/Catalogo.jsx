@@ -30,8 +30,8 @@ export default function Catalogo() {
     try {
       setLoading(true);
       const [prodRes, wareRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/products'),
-        axios.get('http://localhost:3000/api/warehouses')
+        axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/products'),
+        axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/warehouses')
       ]);
       // Deduplicar productos para que solo haya 1 por cada internal_id (sin importar cuántos almacenes tenga)
       const uniqueProducts = [];
@@ -55,7 +55,7 @@ export default function Catalogo() {
 
   const fetchProductos = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/products');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/products');
       const uniqueProducts = [];
       const seen = new Set();
       for (const p of res.data) {
@@ -85,7 +85,7 @@ export default function Catalogo() {
     
     try {
       // Ajusta este endpoint según tu backend si es necesario
-      await axios.put(`http://localhost:3000/api/products/${selectedProduct.id}/origin`, {
+      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/products/${selectedProduct.id}/origin`, {
         originWarehouse: newOrigin || null
       });
       

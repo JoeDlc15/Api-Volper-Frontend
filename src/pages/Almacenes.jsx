@@ -13,7 +13,7 @@ export default function Almacenes() {
   const fetchAlmacenes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/api/warehouses');
+      const res = await axios.get((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/warehouses');
       setAlmacenes(res.data.value || res.data || []);
     } catch (error) {
       console.error("Error cargando almacenes:", error);
@@ -29,7 +29,7 @@ export default function Almacenes() {
   const saveAlias = async (id, alias) => {
     const loadingToast = toast.loading('Guardando alias...');
     try {
-      await axios.put(`http://localhost:3000/api/warehouses/${id}`, { alias });
+      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/warehouses/${id}`, { alias });
       toast.success('Alias guardado correctamente', { id: loadingToast });
     } catch (error) {
       toast.error('Error guardando alias: ' + error.message, { id: loadingToast });
