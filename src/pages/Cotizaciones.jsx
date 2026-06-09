@@ -149,6 +149,14 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     }
 
     try {
+        const existingRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/COT-${numberOnly}`).catch(() => null);
+        if (existingRes && existingRes.data && (existingRes.data.status === 'TRASLADADO' || existingRes.data.status === 'FACTURADO')) {
+            const isConfirmed = await confirm(`⚠️ ATENCIÓN: La cotización COT-${numberOnly} ya se encuentra en estado ${existingRes.data.status}.\n\nSi la importas nuevamente, sus datos se sobreescribirán y regresará a PENDIENTE, corriendo el riesgo de duplicar traslados o procesos.\n\n¿Estás completamente seguro de continuar y reescribirla?`);
+            if (!isConfirmed) return;
+        }
+    } catch(e) {}
+
+    try {
       setIsImporting(true);
       showNotification(`Importando cotización ${importNumber}...`, "info");
       
@@ -478,7 +486,11 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                                               <td style={{ padding: '8px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold' }}>{item.reservaGlobal || 0}</td>
                                               <td style={{ padding: '8px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold' }}>{item.stockDispGlobal || 0}</td>
                                               <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                {isSuficiente ? (
+                                                {selectedCotizacion.status === 'TRASLADADO' ? (
+                                                  <span style={{ color: '#7e22ce', fontWeight: 'bold' }}>📦 Ya trasladado</span>
+                                                ) : selectedCotizacion.status === 'FACTURADO' ? (
+                                                  <span style={{ color: '#166534', fontWeight: 'bold' }}>✅ Facturado</span>
+                                                ) : isSuficiente ? (
                                                   <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✅ Suficiente</span>
                                                 ) : (
                                                   <span style={{ color: '#dc2626', fontWeight: 'bold' }}>❌ Insuficiente</span>
