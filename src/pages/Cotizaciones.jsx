@@ -490,6 +490,12 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                                                   <span style={{ color: '#7e22ce', fontWeight: 'bold' }}>📦 Ya trasladado</span>
                                                 ) : selectedCotizacion.status === 'FACTURADO' ? (
                                                   <span style={{ color: '#166534', fontWeight: 'bold' }}>✅ Facturado</span>
+                                                ) : selectedCotizacion.status === 'RESERVADO' ? (
+                                                  isSuficiente ? (
+                                                    <span style={{ color: '#1e40af', fontWeight: 'bold' }}>🔒 Reservado</span>
+                                                  ) : (
+                                                    <span style={{ color: '#dc2626', fontWeight: 'bold' }}>❌ Insuficiente (Reservado)</span>
+                                                  )
                                                 ) : isSuficiente ? (
                                                   <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✅ Suficiente</span>
                                                 ) : (
