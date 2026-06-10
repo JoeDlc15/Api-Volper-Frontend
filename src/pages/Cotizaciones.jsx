@@ -260,9 +260,9 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
       return orderA - orderB;
     }
     
-    // 2. Ordenar por Fecha (más recientes primero)
-    const dateA = new Date(a.date || 0);
-    const dateB = new Date(b.date || 0);
+    // 2. Ordenar por Fecha de Importación (más recientes primero)
+    const dateA = new Date(a.createdAt || a.date || 0);
+    const dateB = new Date(b.createdAt || b.date || 0);
     return dateB - dateA;
   });
 
@@ -370,7 +370,9 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                   <React.Fragment key={c.id}>
                     <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', backgroundColor: selectedCotizacion?.number === c.number ? '#f8fafc' : 'white' }}>
                       <td style={{ padding: '12px 8px', fontWeight: 'bold', color: '#3b82f6' }}>{c.number}</td>
-                      <td style={{ padding: '12px 8px', color: '#64748b' }}>{c.date}</td>
+                      <td style={{ padding: '12px 8px', color: '#64748b' }}>
+                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : c.date}
+                      </td>
                       <td style={{ padding: '12px 8px', color: '#475569' }}>{c.customerName || '-'}</td>
                       <td style={{ padding: '12px 8px', color: '#64748b' }}>{c.customerRuc || '-'}</td>
                       <td style={{ padding: '12px 8px', textAlign: 'center' }}>{getStatusBadge(c.status)}</td>
