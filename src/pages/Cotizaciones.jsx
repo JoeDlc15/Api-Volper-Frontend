@@ -12,6 +12,18 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos los estados');
   
+  // Ordenamiento
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(() => {
@@ -245,25 +257,33 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     const searchableString = `${item.number || ''} ${item.customerName || ''} ${item.documentRef || ''}`.toLowerCase();
     return searchTerms.every(term => searchableString.includes(term));
   }).sort((a, b) => {
-    // 1. Ordenar por Estado
-    const statusOrder = {
-      'PENDIENTE': 1,
-      'RESERVADO': 2,
-      'TRASLADADO': 3,
-      'FACTURADO': 4
-    };
+    if (!sortConfig.key) return 0;
     
-    const orderA = statusOrder[a.status] || 99;
-    const orderB = statusOrder[b.status] || 99;
+    let aVal, bVal;
     
-    if (orderA !== orderB) {
-      return orderA - orderB;
+    switch (sortConfig.key) {
+      case 'status':
+        const statusOrder = { 'PENDIENTE': 1, 'RESERVADO': 2, 'TRASLADADO': 3, 'FACTURADO': 4 };
+        aVal = statusOrder[a.status] || 99;
+        bVal = statusOrder[b.status] || 99;
+        break;
+      case 'createdAt':
+        aVal = new Date(a.createdAt || a.date || 0).getTime();
+        bVal = new Date(b.createdAt || b.date || 0).getTime();
+        break;
+      case 'number':
+        aVal = parseInt((a.number || '').replace(/\D/g, '')) || 0;
+        bVal = parseInt((b.number || '').replace(/\D/g, '')) || 0;
+        break;
+      default:
+        aVal = (a[sortConfig.key] || '').toString().toLowerCase();
+        bVal = (b[sortConfig.key] || '').toString().toLowerCase();
+        break;
     }
-    
-    // 2. Ordenar por Fecha de Importación (más recientes primero)
-    const dateA = new Date(a.createdAt || a.date || 0);
-    const dateB = new Date(b.createdAt || b.date || 0);
-    return dateB - dateA;
+
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -275,6 +295,11 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     if (status === 'PENDIENTE') return <span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>PENDIENTE</span>;
     if (status === 'RESERVADO') return <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>RESERVADO</span>;
     return <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>{status}</span>;
+  };
+
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return <span style={{ opacity: 0.3, marginLeft: '4px', fontSize: '0.75rem' }}>↕</span>;
+    return <span style={{ marginLeft: '4px', fontSize: '0.75rem' }}>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
   return (
@@ -353,12 +378,24 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#ffffff', borderBottom: '2px solid #e2e8f0', color: '#334155' }}>
-                <th style={{ padding: '12px 8px', fontWeight: '600' }}>Número</th>
-                <th style={{ padding: '12px 8px', fontWeight: '600' }}>Fecha</th>
-                <th style={{ padding: '12px 8px', fontWeight: '600' }}>Cliente</th>
-                <th style={{ padding: '12px 8px', fontWeight: '600' }}>RUC</th>
-                <th style={{ padding: '12px 8px', fontWeight: '600', textAlign: 'center' }}>Estado</th>
-                <th style={{ padding: '12px 8px', fontWeight: '600' }}>Documento</th>
+                <th onClick={() => handleSort('number')} style={{ padding: '12px 8px', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}>
+                  Número <SortIcon columnKey="number" />
+                </th>
+                <th onClick={() => handleSort('createdAt')} style={{ padding: '12px 8px', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}>
+                  Fecha <SortIcon columnKey="createdAt" />
+                </th>
+                <th onClick={() => handleSort('customerName')} style={{ padding: '12px 8px', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}>
+                  Cliente <SortIcon columnKey="customerName" />
+                </th>
+                <th onClick={() => handleSort('customerRuc')} style={{ padding: '12px 8px', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}>
+                  RUC <SortIcon columnKey="customerRuc" />
+                </th>
+                <th onClick={() => handleSort('status')} style={{ padding: '12px 8px', fontWeight: '600', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>
+                  Estado <SortIcon columnKey="status" />
+                </th>
+                <th onClick={() => handleSort('documentRef')} style={{ padding: '12px 8px', fontWeight: '600', cursor: 'pointer', userSelect: 'none' }}>
+                  Documento <SortIcon columnKey="documentRef" />
+                </th>
                 <th style={{ padding: '12px 8px', fontWeight: '600' }}>Acción</th>
               </tr>
             </thead>
