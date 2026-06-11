@@ -49,6 +49,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
   const [transferTargetWarehouse, setTransferTargetWarehouse] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [warehouses, setWarehouses] = useState([]);
+  const [selectedItemsToTransfer, setSelectedItemsToTransfer] = useState([]);
 
   const [pdfPreview, setPdfPreview] = useState(null);
 
@@ -86,7 +87,8 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     setIsTransferring(true);
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${selectedCotizacion.id}/transfer-all`, {
-        target_warehouse_id: transferTargetWarehouse
+        target_warehouse_id: transferTargetWarehouse,
+        selected_item_ids: selectedItemsToTransfer
       });
       if (res.data.success) {
         showNotification(res.data.message, 'success');
@@ -134,6 +136,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
   const handleVerDetalle = async (number) => {
     try {
       setSelectedCotizacion({ number, loading: true }); 
+      setSelectedItemsToTransfer([]); // Reset selection
       
       const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${number}`);
       setSelectedCotizacion({ ...res.data, loading: false });
@@ -145,6 +148,22 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     } catch (error) {
       showNotification("Error cargando detalles: " + (error.response?.data?.error || error.message), "error");
       setSelectedCotizacion(null);
+    }
+  };
+
+  const handleEditDate = async (id, currentVal) => {
+    const rawDate = currentVal ? new Date(currentVal).toISOString().split('T')[0] : '';
+    const newDate = prompt("Editar Fecha de Importación (YYYY-MM-DD):", rawDate);
+    if (!newDate) return;
+    try {
+      showNotification(`Actualizando fecha...`, "info");
+      const res = await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${id}/date`, { newDate });
+      if (res.data.success) {
+        showNotification("Fecha actualizada correctamente", "success");
+        fetchCotizaciones();
+      }
+    } catch(e) {
+      showNotification("Error al actualizar fecha", "error");
     }
   };
 
@@ -408,7 +427,16 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                     <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', backgroundColor: selectedCotizacion?.number === c.number ? '#f8fafc' : 'white' }}>
                       <td style={{ padding: '12px 8px', fontWeight: 'bold', color: '#3b82f6' }}>{c.number}</td>
                       <td style={{ padding: '12px 8px', color: '#64748b' }}>
-                        {c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : c.date}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span>{c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : c.date}</span>
+                          <span 
+                            title="Editar fecha de importación" 
+                            style={{ cursor: 'pointer', fontSize: '1.1rem' }} 
+                            onClick={(e) => { e.stopPropagation(); handleEditDate(c.id, c.createdAt || c.date); }}
+                          >
+                            ✏️
+                          </span>
+                        </div>
                       </td>
                       <td style={{ padding: '12px 8px', color: '#475569' }}>{c.customerName || '-'}</td>
                       <td style={{ padding: '12px 8px', color: '#64748b' }}>{c.customerRuc || '-'}</td>
@@ -482,12 +510,12 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                                         📦 Trasladado
                                       </button>
                                     )}
-                                    {(selectedCotizacion.status === 'PENDIENTE' || selectedCotizacion.status === 'RESERVADO') && (
+                                    {(selectedCotizacion.status === 'PENDIENTE' || selectedCotizacion.status === 'RESERVADO' || selectedCotizacion.status === 'TRASLADO PARCIAL') && (
                                       <button 
                                         onClick={() => setShowMassiveTransferModal(true)}
                                         style={{ padding: '6px 12px', backgroundColor: '#f3e8ff', color: '#7e22ce', border: '1px solid #d8b4fe', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', fontSize: '0.8rem' }}
                                       >
-                                        🚚 Traslado Masivo
+                                        🚚 Traslado Parcial / Masivo
                                       </button>
                                     )}
                                     <button 
@@ -505,6 +533,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
                                     <thead>
                                       <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#334155' }}>
+                                        <th style={{ padding: '8px', fontWeight: '600' }}>Sel.</th>
                                         <th style={{ padding: '8px', fontWeight: '600' }}>#</th>
                                         <th style={{ padding: '8px', fontWeight: '600' }}>Producto</th>
                                         <th style={{ padding: '8px', fontWeight: '600', textAlign: 'center' }}>Requerido</th>
@@ -518,14 +547,31 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                                         selectedCotizacion.items.map((item, idx) => {
                                           const isSuficiente = item.stockDisponibleParaMi >= item.quantity;
                                           return (
-                                            <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', opacity: item.isTransferred ? 0.6 : 1 }}>
+                                              <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                <input 
+                                                  type="checkbox" 
+                                                  disabled={item.isTransferred || selectedCotizacion.status === 'FACTURADO' || selectedCotizacion.status === 'TRASLADADO'}
+                                                  checked={item.isTransferred || selectedItemsToTransfer.includes(item.id)}
+                                                  onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                      setSelectedItemsToTransfer([...selectedItemsToTransfer, item.id]);
+                                                    } else {
+                                                      setSelectedItemsToTransfer(selectedItemsToTransfer.filter(id => id !== item.id));
+                                                    }
+                                                  }}
+                                                  style={{ cursor: item.isTransferred ? 'not-allowed' : 'pointer' }}
+                                                />
+                                              </td>
                                               <td style={{ padding: '8px', color: '#64748b' }}>{idx + 1}</td>
                                               <td style={{ padding: '8px', color: '#1e293b', fontWeight: '500' }}>{item.description || item.productName || item.productId}</td>
                                               <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#1e293b' }}>{item.quantity}</td>
                                               <td style={{ padding: '8px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold' }}>{item.reservaGlobal || 0}</td>
                                               <td style={{ padding: '8px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold' }}>{item.stockDispGlobal || 0}</td>
                                               <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                {selectedCotizacion.status === 'TRASLADADO' ? (
+                                                {item.isTransferred ? (
+                                                  <span style={{ color: '#7e22ce', fontWeight: 'bold' }}>📦 Ya trasladado</span>
+                                                ) : selectedCotizacion.status === 'TRASLADADO' ? (
                                                   <span style={{ color: '#7e22ce', fontWeight: 'bold' }}>📦 Ya trasladado</span>
                                                 ) : selectedCotizacion.status === 'FACTURADO' ? (
                                                   <span style={{ color: '#166534', fontWeight: 'bold' }}>✅ Facturado</span>
