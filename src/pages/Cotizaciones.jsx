@@ -265,6 +265,22 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     }
   };
 
+  const handleUpdateObservation = async (id, isObserved, text) => {
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${id}/observation`, { 
+        isObserved: isObserved, 
+        observationText: text 
+      });
+      setCotizaciones(prev => prev.map(c => c.id === id ? { ...c, isObserved, observationText: text } : c));
+      if (selectedCotizacion?.id === id) {
+        setSelectedCotizacion(prev => ({ ...prev, isObserved, observationText: text }));
+      }
+      showNotification("Observación guardada correctamente.", "success");
+    } catch(error) {
+      showNotification("Error al guardar observación.", "error");
+    }
+  };
+
   // Filtrado
   const filteredData = cotizaciones.filter((item) => {
     // Filtro por estado
@@ -424,7 +440,7 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
               ) : currentData.length > 0 ? (
                 currentData.map((c) => (
                   <React.Fragment key={c.id}>
-                    <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', backgroundColor: selectedCotizacion?.number === c.number ? '#f8fafc' : 'white' }}>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', backgroundColor: selectedCotizacion?.number === c.number ? '#f8fafc' : c.isObserved ? '#fef3c7' : 'white' }}>
                       <td style={{ padding: '12px 8px', fontWeight: 'bold', color: '#3b82f6' }}>{c.number}</td>
                       <td style={{ padding: '12px 8px', color: '#64748b' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -527,6 +543,36 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                                       📄 PDF (Guía)
                                     </button>
                                   </div>
+                                </div>
+
+                                <div style={{ marginTop: '15px', marginBottom: '20px', padding: '15px', backgroundColor: selectedCotizacion.isObserved ? '#fffbeb' : '#f8fafc', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: selectedCotizacion.isObserved ? '10px' : '0' }}>
+                                    <label style={{ fontWeight: '500', color: '#1e293b' }}>Observación Interna:</label>
+                                    <div 
+                                      onClick={() => handleUpdateObservation(selectedCotizacion.id, !selectedCotizacion.isObserved, selectedCotizacion.observationText)}
+                                      style={{ 
+                                        width: '40px', height: '22px', backgroundColor: selectedCotizacion.isObserved ? '#f59e0b' : '#cbd5e1', 
+                                        borderRadius: '20px', position: 'relative', cursor: 'pointer', transition: 'background-color 0.2s' 
+                                      }}>
+                                      <div style={{ 
+                                        width: '18px', height: '18px', backgroundColor: 'white', borderRadius: '50%', 
+                                        position: 'absolute', top: '2px', left: selectedCotizacion.isObserved ? '20px' : '2px', 
+                                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' 
+                                      }} />
+                                    </div>
+                                  </div>
+                                  {selectedCotizacion.isObserved && (
+                                    <div>
+                                      <textarea
+                                        value={selectedCotizacion.observationText || ''}
+                                        onChange={(e) => setSelectedCotizacion(prev => ({ ...prev, observationText: e.target.value }))}
+                                        onBlur={(e) => handleUpdateObservation(selectedCotizacion.id, true, e.target.value)}
+                                        placeholder="Escribe una observación manual aquí... (Ej: Faltan enviar 2 unidades de X producto)"
+                                        style={{ width: '100%', minHeight: '60px', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none', resize: 'vertical', fontSize: '0.9rem' }}
+                                      />
+                                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '5px' }}>* Se guarda automáticamente al hacer clic fuera del cuadro de texto.</div>
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div style={{ overflowX: 'auto' }}>
