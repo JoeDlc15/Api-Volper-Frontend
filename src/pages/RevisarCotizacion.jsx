@@ -60,41 +60,17 @@ export default function RevisarCotizacion() {
       setCurrentQuote(null);
       setCustomerHistory([]); // Reset history when new quote loads
       
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations/${dbNumber}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/review-temp-quotation/${dbNumber}`);
       const quoteData = res.data;
       setCurrentQuote(quoteData);
 
-      // Si encuentra la cotización, carga el historial del cliente (si existe en BD local)
       if (quoteData.customerName || quoteData.customerRuc) {
         fetchCustomerHistory(quoteData.customerName, quoteData.customerRuc);
       }
     } catch (error) {
-      if (error.response?.status === 404) {
-        // La cotización no existe en la BD local. Preguntar si desea descargarla.
-        const isConfirmed = await confirm(`La cotización ${dbNumber} no existe en tu base de datos local.\n\n¿Deseas descargarla e importarla automáticamente desde Volper?`);
-        if (isConfirmed) {
-          await importMissingQuote(dbNumber);
-        }
-      } else {
-        alert("Error al buscar cotización: " + (error.response?.data?.error || error.message));
-      }
+      alert("Error al buscar cotización: " + (error.response?.data?.error || error.message));
     } finally {
       setLoadingQuote(false);
-    }
-  };
-
-  const importMissingQuote = async (number) => {
-    try {
-      // El script de Python/Node necesita solo el número para la URL (ej. 1391)
-      const rawNumber = number.replace(/\D/g, '');
-
-      setLoadingQuote(true);
-      await axios.post((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/add-quotation', { quotationNumber: rawNumber });
-      
-      // Una vez importada correctamente, la volvemos a buscar en formato BD
-      await handleSearchQuote(`COT-${rawNumber}`);
-    } catch (error) {
-      alert("Error importando la cotización desde la nube: " + (error.response?.data?.error || error.message));
     }
   };
 
