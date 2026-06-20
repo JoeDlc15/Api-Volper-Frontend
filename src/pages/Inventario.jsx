@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 export default function Inventario() {
   const [productos, setProductos] = useState([]);
@@ -49,6 +50,26 @@ export default function Inventario() {
       alert("Error actualizando catálogo.");
       setLoading(false);
     }
+  };
+
+  const handleExportExcel = () => {
+    if (filteredProductos.length === 0) {
+      alert("No hay datos filtrados para exportar.");
+      return;
+    }
+    const dataToExport = filteredProductos.map(p => ({
+      Codigo: p.internal_id,
+      Descripcion: p.name,
+      Categoria: p.item_category_name,
+      Almacen: p.warehouse_name,
+      Stock_Total: p.stock,
+      Reserva: p.reserva,
+      Stock_Disponible: p.stockDiferencia
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventario Filtrado");
+    XLSX.writeFile(wb, `Inventario_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   // Obtener lista única de almacenes para el select
@@ -116,14 +137,23 @@ export default function Inventario() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           {lastUpdate && <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Última actualización: <strong>{lastUpdate}</strong></span>}
           <button 
+            onClick={handleExportExcel}
+            style={{
+              padding: '8px 16px', backgroundColor: '#059669', 
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'
+            }}
+          >
+            📊 Exportar a Excel
+          </button>
+          <button 
             onClick={handleUpdateCatalog}
             disabled={loading}
             style={{
               padding: '8px 16px', backgroundColor: 'var(--primary-color)', 
-              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'
             }}
           >
-            {loading ? 'Actualizando...' : '🔄 Actualizar Catálogo'}
+            {loading ? '⏳ Actualizando...' : '🔄 Actualizar Catálogo'}
           </button>
         </div>
       </div>

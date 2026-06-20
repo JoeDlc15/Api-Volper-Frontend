@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 export default function Kardex() {
   const [kardex, setKardex] = useState([]);
@@ -39,6 +40,27 @@ export default function Kardex() {
     return searchTerms.every(term => textToSearch.includes(term));
   });
 
+  const handleExportExcel = () => {
+    if (filtered.length === 0) {
+      alert("No hay registros en el Kardex para exportar.");
+      return;
+    }
+    const dataToExport = filtered.map(k => ({
+      Fecha: k.date,
+      Codigo: k.item_code,
+      Descripcion: k.item_description,
+      Almacen: k.warehouse_description,
+      Stock_Inicial: k.initial_stock,
+      Movimiento: k.added_quantity,
+      Stock_Final: k.final_stock,
+      Comentarios: k.comments
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Kardex");
+    XLSX.writeFile(wb, `Kardex_Filtrado_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   // Lógica de paginación
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -58,14 +80,23 @@ export default function Kardex() {
             style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none' }}
           />
           <button 
+            onClick={handleExportExcel}
+            style={{
+              padding: '8px 16px', backgroundColor: '#059669', 
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+            }}
+          >
+            📊 Exportar Excel
+          </button>
+          <button 
             onClick={fetchKardex}
             disabled={loading}
             style={{
               padding: '8px 16px', backgroundColor: '#10b981', 
-              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
             }}
           >
-            {loading ? 'Cargando...' : '🔄 Actualizar Vista'}
+            {loading ? '⏳ Cargando...' : '🔄 Actualizar Vista'}
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { Toaster } from 'react-hot-toast';
 import { generarCotizacionPDF } from '../utils/pdfGenerator';
 import ManualQuotationModal from '../components/ManualQuotationModal';
+import * as XLSX from 'xlsx';
 
 export default function Cotizaciones({ filterMode = 'nacional' }) {
   const { confirm, ConfirmModal } = useConfirmDialog();
@@ -204,6 +205,32 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      showNotification("Generando reporte Excel...", "info");
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/quotations-export-data`);
+      if (res.data.success && res.data.data.length > 0) {
+        // Filtrar según nacional o internacional
+        let exportData = res.data.data;
+        if (filterMode === 'internacional') {
+          exportData = exportData.filter(q => q.Cotizacion && q.Cotizacion.startsWith('EXT-'));
+        } else {
+          exportData = exportData.filter(q => !q.Cotizacion || !q.Cotizacion.startsWith('EXT-'));
+        }
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Cotizaciones");
+        XLSX.writeFile(wb, `Cotizaciones_${filterMode}_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showNotification("Excel descargado correctamente.", "success");
+      } else {
+        showNotification("No hay datos para exportar.", "error");
+      }
+    } catch (error) {
+      showNotification("Error al exportar a Excel: " + (error.response?.data?.error || error.message), "error");
+    }
+  };
+
   const handleDeleteCotizacion = async () => {
     if (!deleteNumber.trim()) {
       showNotification("Por favor, ingresa el número de cotización a eliminar.", "error");
@@ -371,6 +398,12 @@ export default function Cotizaciones({ filterMode = 'nacional' }) {
                 📝 Nueva Cotización Internacional
               </button>
             )}
+            <button 
+              onClick={handleExportExcel}
+              style={{ padding: '8px 16px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+            >
+              📊 Exportar Excel
+            </button>
             <button 
               onClick={() => setShowDeleteModal(true)}
               style={{ padding: '8px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
